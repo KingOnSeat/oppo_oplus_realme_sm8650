@@ -570,6 +570,13 @@ jobs:
           echo "sloppiness = file_stat_matches,include_file_ctime,include_file_mtime,pch_defines,file_macro,time_macros" >> "$CCACHE_DIR/ccache.conf"
           
           cd kernel_workspace/common
+          
+          # 修复高版本 pahole 与旧内核的 BTF 兼容性问题
+          if pahole --version 2>/dev/null | awk '{print $NF}' | grep -qE '^1\.(2[4-9]|[3-9])'; then
+            echo "检测到 pahole 版本过高，正在为 scripts/pahole-flags.sh 打上跳过 enum64 的补丁..."
+            sed -i '/^echo.*extra_paholeopt$/i if [ "${pahole_ver}" -ge "124" ]; then\n    extra_paholeopt="${extra_paholeopt} --skip_encoding_btf_enum64"\nfi' scripts/pahole-flags.sh
+          fi
+          
           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/lib/libfakestat.so
           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/lib/libfaketimeMT.so
           chmod 777 ./*.so
